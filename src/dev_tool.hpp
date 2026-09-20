@@ -22,9 +22,9 @@ namespace dev_tool{
 
     bool enable_vsync(bool& vsync){
 
-        ImGui::Begin("VSYNC status           ",nullptr,ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::Begin("VSYNC status     ",nullptr,ImGuiWindowFlags_AlwaysAutoResize);
 
-        if (ImGui::Checkbox("VSYNC         ", &vsync)){
+        if (ImGui::Checkbox("VSYNC       ", &vsync)){
 
         SDL_GL_SetSwapInterval(vsync ? 1 : 0);
         if (vsync){
@@ -69,6 +69,7 @@ namespace dev_tool{
     ImGui::End();
 
     }
+
     void dux_render(){
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();

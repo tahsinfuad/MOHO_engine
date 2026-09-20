@@ -12,11 +12,11 @@ std::string FRAGMENT_SHADER = "shader/frag.sh";
 
 int main(int argc, char* argv[]){
 
+    render::draw2D::shader sh; 
     core g_core;
 
     input::action kin;
     cfg::Settings engs;
-    render::draw2D::shader sh; 
 
     engs.load("settings.toml");
 
@@ -53,7 +53,20 @@ int main(int argc, char* argv[]){
     glEnableVertexAttribArray(0);
     glBindVertexArray(sh.vao);
 
+    GLint program;
+    std::string cache = "cache/shader.cache";
+    if (!sh.shaderChanged(cache, VERTEX_SHADER , FRAGMENT_SHADER) &&
+    ( program = sh.loadProgramBinary(cache)) != 0 ) {
+    std::cout << "SHADR LOADED FROM CACHE SUCCESSFULLY" << std::endl;
+    } else {
+
     sh.init( VERTEX_SHADER , FRAGMENT_SHADER );
+
+    sh.saveProgramBinary(program , cache);
+    
+    std::cout << "shader cache created succesfully " <<std::endl;
+
+    }
 
     dev_tool::dux_init(g_core.win,g_core.gl_context);
 

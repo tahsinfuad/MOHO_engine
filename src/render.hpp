@@ -8,6 +8,8 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <vector>
+#include <filesystem>
 
 namespace render{
 
@@ -24,6 +26,11 @@ namespace render{
     void use(){
         glUseProgram(ID);
     };
+
+    void saveProgramBinary(GLuint program, const std::string& filename);
+    GLuint loadProgramBinary(const std::string& filename);
+    //load shader cache
+
     void setBool(const std::string &name, bool value) const{         
         glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value); 
     };
@@ -39,24 +46,35 @@ namespace render{
     void cleanup(){
         glDeleteProgram(ID);
     };
+    bool shaderChanged(const std::string& cacheFile, const std::string& vert, const std::string& frag) {
+
+    if (!std::filesystem::exists(cacheFile)) return true; // no cache yet
+
+    auto cacheTime = std::filesystem::last_write_time(cacheFile);
+    if (std::filesystem::last_write_time(vert) > cacheTime) return true;
+    if (std::filesystem::last_write_time(frag) > cacheTime) return true;
+    return false;
+    };
 
     private:
 
         unsigned int ID;
 
         void checkCompileErrors(unsigned int shader,const std::string& type);
+        
     };
 
 };
-
-
-
     namespace draw3D{
 
     };
 }
 
 void render::draw2D::shader::init(std::string &vertsh, std::string &fragsh){
+
+    //check if gpu is compatible with my advance feature
+    GLint numFormats = 0;
+    glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numFormats);
 
     //open files
     std::ifstream vert(vertsh);
@@ -125,6 +143,44 @@ void render::draw2D::shader::init(std::string &vertsh, std::string &fragsh){
     // delete the shaders as they're linked into our program now and no longer necessary
     glDeleteShader(vertex);
     glDeleteShader(fragment);    
+}
+
+void render::draw2D::shader::saveProgramBinary(GLuint program, const std::string& filename) {
+
+    GLint length = 0;
+    glGetProgramiv(program, GL_PROGRAM_BINARY_LENGTH, &length);
+
+    std::vector<GLubyte> binary(length);
+    GLenum format = 0;
+    glGetProgramBinary(program, length, nullptr, &format, binary.data());
+
+    std::ofstream out(filename, std::ios::binary);
+    out.write(reinterpret_cast<char*>(&format), sizeof(format)); // format first!
+    out.write(reinterpret_cast<char*>(binary.data()), length);
+}
+
+GLuint render::draw2D::shader::loadProgramBinary(const std::string& filename){
+
+    std::ifstream in(filename, std::ios::binary);
+    if (!in) return 0; // no cache
+
+    GLenum format;
+    in.read(reinterpret_cast<char*>(&format), sizeof(format));
+
+    std::vector<GLubyte> binary((std::istreambuf_iterator<char>(in)),
+    std::istreambuf_iterator<char>());
+    if (binary.empty()) return 0;
+
+    GLuint program = glCreateProgram();
+    glProgramBinary(program, format, binary.data(), binary.size());
+
+    GLint linked = GL_FALSE;
+    glGetProgramiv(program, GL_LINK_STATUS, &linked);
+    if (!linked) {
+        glDeleteProgram(program);
+        return 0; 
+    }
+    return program;
 }
 
 void render::draw2D::shader::checkCompileErrors(unsigned int shader,const std::string& type){
