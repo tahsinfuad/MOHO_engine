@@ -46,6 +46,9 @@ namespace render{
     void cleanup(){
         glDeleteProgram(ID);
     };
+    GLuint getProgram() const{
+    return ID;
+    };
     bool shaderChanged(const std::string& cacheFile, const std::string& vert, const std::string& frag) {
 
     if (!std::filesystem::exists(cacheFile)) return true; // no cache yet
@@ -71,10 +74,6 @@ namespace render{
 }
 
 void render::draw2D::shader::init(std::string &vertsh, std::string &fragsh){
-
-    //check if gpu is compatible with my advance feature
-    GLint numFormats = 0;
-    glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numFormats);
 
     //open files
     std::ifstream vert(vertsh);
@@ -145,42 +144,158 @@ void render::draw2D::shader::init(std::string &vertsh, std::string &fragsh){
     glDeleteShader(fragment);    
 }
 
-void render::draw2D::shader::saveProgramBinary(GLuint program, const std::string& filename) {
+void render::draw2D::shader::saveProgramBinary(GLuint program, const std::string& filename){
+    GLint numFormats = 0;
+    glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numFormats);
+
+    std::cout << "Program binary formats: "<< numFormats << std::endl;
+
+    if (numFormats == 0) {
+        std::cout << "Program binaries are NOT supported!" << std::endl;
+        return;
+    }
+
+    GLint linked = GL_FALSE;
+    glGetProgramiv(program, GL_LINK_STATUS, &linked);
+
+    if (!linked) {
+        std::cout << "Cannot save binary: program is not linked!"<< std::endl;
+        return;
+    }
 
     GLint length = 0;
     glGetProgramiv(program, GL_PROGRAM_BINARY_LENGTH, &length);
 
+    std::cout << "Binary length: "<< length << std::endl;
+
+    if (length <= 0) {
+        std::cout << "Invalid binary length!" << std::endl;
+        return;
+    }
+
     std::vector<GLubyte> binary(length);
+
     GLenum format = 0;
-    glGetProgramBinary(program, length, nullptr, &format, binary.data());
+
+    glGetProgramBinary(
+        program,
+        length,
+        nullptr,
+        &format,
+        binary.data()
+    );
+
+    GLenum error = glGetError();
+
+    if (error != GL_NO_ERROR) {
+        std::cout << "glGetProgramBinary error: 0x"<< std::hex << error << std::dec << std::endl;
+        return;
+    }
 
     std::ofstream out(filename, std::ios::binary);
-    out.write(reinterpret_cast<char*>(&format), sizeof(format)); // format first!
-    out.write(reinterpret_cast<char*>(binary.data()), length);
+
+    if (!out) {
+        std::cout << "Could not open cache file!" << std::endl;
+        return;
+    }
+
+    out.write(
+        reinterpret_cast<char*>(&format),
+        sizeof(format)
+    );
+
+    out.write(
+        reinterpret_cast<char*>(binary.data()),
+        length
+    );
+
+    std::cout << "Shader binary saved. Format: 0x" << std::hex << format << std::dec << std::endl;
 }
 
 GLuint render::draw2D::shader::loadProgramBinary(const std::string& filename){
 
+    ID = glCreateProgram();
+
     std::ifstream in(filename, std::ios::binary);
-    if (!in) return 0; // no cache
+    if (!in) {
+        std::cout << "Cache file does not exist." << std::endl;
+        return 0;
+    }
+    GLenum format = 0;
 
-    GLenum format;
-    in.read(reinterpret_cast<char*>(&format), sizeof(format));
+    in.read(
+        reinterpret_cast<char*>(&format),
+        sizeof(format)
+    );
 
-    std::vector<GLubyte> binary((std::istreambuf_iterator<char>(in)),
-    std::istreambuf_iterator<char>());
-    if (binary.empty()) return 0;
+    if (!in) {
+        std::cout << "Failed to read binary format." << std::endl;
+        return 0;
+    }
 
-    GLuint program = glCreateProgram();
-    glProgramBinary(program, format, binary.data(), binary.size());
+    auto first = std::istreambuf_iterator<char>{in};
+    auto last = std::istreambuf_iterator<char>{};
+
+    std::vector<GLubyte> binary(first,last);
+
+    if (binary.empty()) {
+        std::cout << "Binary cache is empty."<< std::endl;
+        return 0;
+    }
+
+    std::cout << "Loading binary..."
+              << "\nFormat: 0x"
+              << std::hex << format
+              << std::dec
+              << "\nSize: "
+              << binary.size()
+              << std::endl;
+
+    glProgramBinary(
+        ID,
+        format,
+        binary.data(),
+        static_cast<GLsizei>(binary.size())
+    );
+
+    GLenum error = glGetError();
+
+    if (error != GL_NO_ERROR) {
+        std::cout << "glProgramBinary error: 0x"<< std::hex << error << std::dec << std::endl;
+
+        glDeleteProgram(ID);
+        return 0;
+    }
 
     GLint linked = GL_FALSE;
-    glGetProgramiv(program, GL_LINK_STATUS, &linked);
+
+    glGetProgramiv(
+        ID,
+        GL_LINK_STATUS,
+        &linked
+    );
+
     if (!linked) {
-        glDeleteProgram(program);
-        return 0; 
+
+        char log[2048];
+        GLsizei logLength = 0;
+
+        glGetProgramInfoLog(
+            ID,
+            sizeof(log),
+            &logLength,
+            log
+        );
+
+        std::cout << "Program binary rejected:\n" << log << std::endl;
+
+        glDeleteProgram(ID);
+        return 0;
     }
-    return program;
+
+    std::cout << "Program binary loaded successfully!" << std::endl;
+
+    return ID;
 }
 
 void render::draw2D::shader::checkCompileErrors(unsigned int shader,const std::string& type){

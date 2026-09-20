@@ -53,19 +53,28 @@ int main(int argc, char* argv[]){
     glEnableVertexAttribArray(0);
     glBindVertexArray(sh.vao);
 
-    GLint program;
+    GLint program = 0;
     std::string cache = "cache/shader.cache";
-    if (!sh.shaderChanged(cache, VERTEX_SHADER , FRAGMENT_SHADER) &&
-    ( program = sh.loadProgramBinary(cache)) != 0 ) {
-    std::cout << "SHADR LOADED FROM CACHE SUCCESSFULLY" << std::endl;
+
+    bool changed = sh.shaderChanged(cache,VERTEX_SHADER,FRAGMENT_SHADER);
+
+    std::cout << "Shader changed: " << changed << std::endl;
+
+    program = sh.loadProgramBinary(cache);
+
+    std::cout << "Loaded program: " << program << std::endl;
+
+    if (!changed && program != 0) {
+
+    std::cout << "SHADER LOADED FROM CACHE SUCCESSFULLY" << std::endl;
+
     } else {
 
-    sh.init( VERTEX_SHADER , FRAGMENT_SHADER );
+    sh.init(VERTEX_SHADER, FRAGMENT_SHADER);
+    program = sh.getProgram();                   //gets shader program id 
+    sh.saveProgramBinary(program, cache);
 
-    sh.saveProgramBinary(program , cache);
-    
-    std::cout << "shader cache created succesfully " <<std::endl;
-
+    std::cout << "Shader cache created successfully" << std::endl;
     }
 
     dev_tool::dux_init(g_core.win,g_core.gl_context);
