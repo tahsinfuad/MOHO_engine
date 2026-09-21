@@ -138,6 +138,8 @@ int main(int argc, char* argv[]){
     glDeleteVertexArrays(1, &sh.vao);
     glDeleteBuffers(1, &sh.vbo);
 
+    //glViewport(0,0,width,height);
+
     sh.cleanup();
 
     dev_tool::dux_dinit();
