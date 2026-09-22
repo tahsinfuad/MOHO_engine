@@ -77,6 +77,8 @@ int main(int argc, char* argv[]){
     std::cout << "Shader cache created successfully" << std::endl;
     }
 
+    glViewport(0,0,width,height);
+    
     dev_tool::dux_init(g_core.win,g_core.gl_context);
 
     uint64_t last_time = SDL_GetTicks();
@@ -137,8 +139,6 @@ int main(int argc, char* argv[]){
 
     glDeleteVertexArrays(1, &sh.vao);
     glDeleteBuffers(1, &sh.vbo);
-
-    //glViewport(0,0,width,height);
 
     sh.cleanup();
 

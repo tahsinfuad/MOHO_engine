@@ -9,15 +9,16 @@
                 "-g",
                 "${file}",
                 "${workspaceFolder}\\imgui-master\\*.cpp",
+                "${workspaceFolder}\\src\\code\\*.cpp",
                 "${workspaceFolder}\\glad.c",
                 "-o",
                 "${fileDirname}\\build\\TIMTIM_RENDER.exe",
                 
-                "-I", "C:\\LIBS\\include",
                 "-I", "${fileDirname}",
-                "-L", "C:\\LIBS\\lib",
+                "-L", "${workspaceFolder}\\lib",
 
                 "-lSDL3",
+                "-lSDL3_ttf",
                 "-lopengl32"
             ],
             "options": {

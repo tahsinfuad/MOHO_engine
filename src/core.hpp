@@ -7,7 +7,7 @@
 #include <SDL3/SDL.h>      //include primary graphics api library
 #include <SDL3/SDL_main.h> //include standard graphics api library
 
-#include <SDL3_ttf/SDL_ttf.h>
+//#include <SDL3_ttf/SDL_ttf.h>
 
 class core{
 

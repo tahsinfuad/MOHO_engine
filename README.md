@@ -9,7 +9,7 @@ MOHO Engine is a game engine currently in its early stage of development.
 3. Makefile support (e.g., `mingw32-make`)
 
 ## Build Instructions
-
+ 
 Open a command prompt in the project's root directory and run: migw32-make
 
 The executable will be generated upon successful compilation.
